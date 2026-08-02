@@ -1,4 +1,4 @@
-import { createSignal, For, createEffect, onCleanup } from "solid-js";
+import { createSignal, For, Show, createEffect, onCleanup } from "solid-js";
 import Button from "./Button";
 
 // ---------------------------------------------------------------------------
@@ -33,12 +33,17 @@ function App() {
   // Right now `score` is a plain number, so the display never changes. Replace
   // it with a SIGNAL so that reading it re-renders the score automatically:
   //     const [score, setScore] = createSignal(0);
+
+  const [highScore, setHighScore] = createSignal(
+    Number(localStorage.getItem("dessertGameScore")) || 0
+  );
   // Then read it as score() and update it with setScore(...) below.
   // -------------------------------------------------------------------------
-  const score = 0;
-
   // The board's buttons, as reactive data. <For> renders one <Button> each.
   const [buttons, setButtons] = createSignal(makeButtons(0));
+
+  const [timeLeft, setTimeLeft] = createSignal(ROUND_SECONDS);
+  const [running, setRunning] = createSignal(true);
 
   // -------------------------------------------------------------------------
   // TODO(part1): Write the two click handlers.
@@ -50,6 +55,74 @@ function App() {
   //       - decrease the score by 1, but never below 0
   //       - rebuild the board the same way
   // -------------------------------------------------------------------------
+
+  function handleDessertClick() {
+
+    if (!running()) return;
+
+    const newScore = score() + 1;
+    setScore(newScore);
+    setButtons(makeButtons(newScore));
+  }
+
+  function handleDesertClick() {
+
+    if (!running()) return;
+
+    const newScore = Math.max(0, score() - 1);
+    setScore(newScore);
+    setButtons(makeButtons(newScore));
+  }
+
+  function playAgain() {
+
+    setScore(0);
+    setTimeLeft(ROUND_SECONDS);
+    setButtons(makeButtons(0));
+    setRunning(true);
+
+  }
+
+
+  createEffect(() => {
+
+    if (score() > highScore()) {
+      setHighScore(score());
+    }
+
+  });
+
+
+  createEffect(() => {
+
+    localStorage.setItem(
+      "dessertGameScore",
+      String(highScore())
+    );
+
+  });
+
+
+  createEffect(() => {
+
+    if (running()) {
+
+      const timer = setInterval(() => {
+
+        setTimeLeft(timeLeft() - 1);
+
+        if (timeLeft() <= 1) {
+          setRunning(false);
+        }
+
+      }, 1000);
+
+      onCleanup(() => clearInterval(timer));
+
+    }
+
+  });
+
 
   // -------------------------------------------------------------------------
   // TODO(part2): Add the countdown timer and Game Over screen.
@@ -70,8 +143,8 @@ function App() {
 
       <div class="hud">
         {/* TODO(part1): show the reactive score. */}
-        <span id="score">Score: {score}</span>
-        {/* TODO(part2): show the countdown timer in a <span id="timer">. */}
+        <span id="score">Score: {score()}</span>
+        <span id="timer">Time: {timeLeft()}</span>
       </div>
 
       <div class="board">
@@ -83,13 +156,21 @@ function App() {
               y={b.y}
               // TODO(part1): call the correct handler depending on b.isTarget
               // (the dessert scores a point; a desert costs one).
-              onClick={() => {}}
+              onClick={b.isTarget ? handleDessertClick : handleDesertClick}
             />
           )}
         </For>
 
-        {/* TODO(part2): add a <Show when={!running()}> block here containing a
-            "Game Over" card with the final score and a "Play again" button. */}
+        <Show when={!running()}>
+          <div class="gameover">
+            <h2>Time's Up!</h2>
+            <p>Final Score: {score()}</p>
+            <p>High Score: {highScore()}</p>
+            <button onClick={playAgain}>
+              Play Again
+            </button>
+          </div>
+        </Show>
       </div>
     </div>
   );

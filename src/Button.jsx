@@ -8,6 +8,10 @@ function Button(props) {
   return (
     <button
       onClick={props.onClick}
+      style={{
+        left: `${props.x}%`,
+        top: `${props.y}%`
+      }}
       // TODO(part1): position the button from state. props.x and props.y are
       // percentages (0-100). Give the button an inline `style` that sets its
       // `left` and `top` from those values so each button lands where its data
